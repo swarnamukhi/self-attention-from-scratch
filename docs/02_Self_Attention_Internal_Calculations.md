@@ -431,20 +431,247 @@ Query), we calculate how much it relates to every other word (as a Key).
 
 **Why dot product (Q × Kᵀ) is used:**
 
--   **What problem it solves:** We need a way to measure the
-    *similarity* or *relatedness* between a Query vector and a Key
-    vector.
--   **Intuition behind similarity:** The dot product of two vectors is
-    high when they point in similar directions and have large
-    magnitudes. If vectors are normalized (unit length), the dot product
-    becomes the cosine of the angle between them, which is a common
-    measure of similarity. In Self-Attention, the learned
-    transformations WQ and WK are designed such that the dot product in
-    their respective spaces reveals meaningful semantic relationships.
--   **What happens without it:** Without a similarity measure, we
-    wouldn't know which words are relevant to each other, and the core
-    purpose of attention (selectively focusing on relevant information)
-    would be lost.
+-  # 4. Why Do We Compute Q × Kᵀ?
+
+At this stage, every word has been transformed into three vectors:
+
+- Query (Q)
+- Key (K)
+- Value (V)
+
+For our example:
+
+| Word | Query (Q) | Key (K) | Value (V) |
+|------|-----------|----------|-----------|
+| **I** | [0.04, 0.12, 0.08, 0.12] | [0.08, 0.04, 0.15, 0.06] | [0.10, 0.04, 0.08, 0.08] |
+| **love** | [0.12, 0.28, 0.24, 0.28] | [0.24, 0.12, 0.35, 0.14] | [0.22, 0.12, 0.20, 0.20] |
+| **cats** | [0.10, 0.04, 0.20, 0.14] | [0.20, 0.10, 0.05, 0.02] | [0.04, 0.10, 0.12, 0.02] |
+
+At this point, we have generated Q, K, and V for every word.
+
+However, the model still does **not** know:
+
+- Which words are important?
+- Which words should influence each other?
+- How much attention should one word pay to another?
+
+To answer these questions, we compare the **Query** vector of every word with the **Key** vectors of all the words in the sequence.
+
+---
+
+## Example
+
+Suppose we are updating the word **"love"**.
+
+The Query vector of **love** is
+
+```
+Q(love)
+
+[0.12, 0.28, 0.24, 0.28]
+```
+
+We compare it with every Key vector.
+
+```
+Q(love) • K(I)
+
+↓
+
+How related is "love" to "I"?
+```
+
+```
+Q(love) • K(love)
+
+↓
+
+How related is "love" to itself?
+```
+
+```
+Q(love) • K(cats)
+
+↓
+
+How related is "love" to "cats"?
+```
+
+The dot product produces one similarity score for each comparison.
+
+A larger score means the two vectors are more similar.
+
+A smaller score means they are less related.
+
+---
+
+## Why is the Key Matrix Transposed?
+
+The Query matrix has shape
+
+```
+Q = (3 × 4)
+```
+
+The Key matrix also has shape
+
+```
+K = (3 × 4)
+```
+
+If we try to multiply
+
+```
+Q × K
+```
+
+the multiplication is **not valid**.
+
+```
+(3 × 4)
+
+×
+
+(3 × 4)
+
+❌ Invalid
+```
+
+The inner dimensions do not match.
+
+To make matrix multiplication possible, we transpose the Key matrix.
+
+```
+Kᵀ = (4 × 3)
+```
+
+Now the multiplication becomes
+
+```
+Q × Kᵀ
+
+(3 × 4)
+
+×
+
+(4 × 3)
+
+↓
+
+(3 × 3)
+```
+
+This multiplication is valid.
+
+---
+
+## What Does the (3 × 3) Matrix Represent?
+
+The resulting matrix contains the attention score between every pair of words.
+
+```
+                Key
+
+           I    love   cats
+
+Query I
+
+Query love
+
+Query cats
+```
+
+Each row represents the **Query** of one word.
+
+Each column represents the **Key** of one word.
+
+Every cell answers the question:
+
+> **How much should this word pay attention to that word?**
+
+For example,
+
+```
+[
+0.12 0.84 0.04
+
+0.21 0.70 0.09
+
+0.18 0.15 0.67
+]
+```
+
+### Row 1
+
+The word **"I"** attends
+
+- 12% to **I**
+- 84% to **love**
+- 4% to **cats**
+
+### Row 2
+
+The word **"love"** attends
+
+- 21% to **I**
+- 70% to **love**
+- 9% to **cats**
+
+### Row 3
+
+The word **"cats"** attends
+
+- 18% to **I**
+- 15% to **love**
+- 67% to **cats**
+
+These values indicate the importance of every word with respect to every other word.
+
+---
+
+## Why Do We Need These Attention Scores?
+
+Before Self-Attention, each word only had its own embedding.
+
+For example,
+
+```
+love
+
+↓
+
+Only the embedding of "love"
+```
+
+After computing the attention scores, the word **love** can gather information from every word in the sentence.
+
+```
+love
+
+↓
+
+I
+
+love
+
+cats
+```
+
+The attention scores tell the model **how much information should be collected from each word**.
+
+These scores are then converted into probabilities using **Softmax**.
+
+Finally, the attention weights are multiplied with the **Value (V)** vectors to generate the new context-aware embedding.
+
+---
+
+## Summary
+
+The operation **Q × Kᵀ** computes the similarity between the Query vector of every token and the Key vectors of all tokens in the sequence.
+
+The resulting **Attention Score Matrix** tells the model **how much attention each token should pay to every other token**.
+
+These attention scores are then normalized using **Softmax** and used to combine the **Value vectors**, producing context-aware embeddings.
 
 **The calculation:** We multiply the Query matrix (Q) by the transpose
 of the Key matrix (Kᵀ).
