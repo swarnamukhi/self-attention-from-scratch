@@ -1391,49 +1391,282 @@ function comes in.
     combine the Value vectors in the next step. The concept of
     "attention" (selectively weighting information) relies on these
     probabilistic weights.
--   **How it works:** Softmax takes an array of numbers and squashes
-    them into a probability distribution where all values are between 0
-    and 1, and their sum equals 1. The formula is:
-    `\text{Softmax}`{=tex}(z_i) =
-    `\frac{e^{z_i}}{\sum_{j} e^{z_j}}`{=tex}
+-   **How it works:** # 6. Softmax: Convert Scores into Attention Weights
 
-We apply Softmax row-wise. Each row in our `Scaled_Attention_Scores`
-matrix represents how one word (Query) attends to all other words
-(Keys).
+After scaling the attention scores, we apply the **Softmax** function.
 
-Let's calculate the Softmax for the first row (attention weights for
-"I"): `[0.0136, 0.0298, 0.0248]`
+The purpose of Softmax is to convert the raw scores into probabilities.
 
-1.  **Calculate e\^{z_i} for each element:**
+The attention weights satisfy two important properties:
 
-    -   e\^{0.0136} `\approx 1.01369`{=tex}
-    -   e\^{0.0298} `\approx 1.03025`{=tex}
-    -   e\^{0.0248} `\approx 1.02511`{=tex}
+- Every value lies between **0 and 1**.
+- The values in each row sum to **1**.
 
-2.  **Calculate the sum of exponentials (`\sum`{=tex}e\^{z_j}):**
-    1.01369 + 1.03025 + 1.02511 = 3.06905
+The Softmax formula is
 
-3.  **Divide each e\^{z_i} by the sum:**
+```
+                ezi
+Softmax(zi) =  ----------
+              Σ ezj
+```
 
-    -   0.0136 → 1.01369 / 3.06905 `\approx 0.3303`{=tex}
-    -   0.0298 → 1.03025 / 3.06905 `\approx 0.3357`{=tex}
-    -   0.0248 → 1.02511 / 3.06905 `\approx 0.3340`{=tex}
+where
 
-So, the attention weights for "I" are `[0.3303, 0.3357, 0.3340]`. Notice
-these sum to approximately 1.0.
+- `zi` is the current score.
+- `Σ ezj` is the sum of exponentials of all the scores in that row.
 
-Performing similar calculations for the other rows:
+---
 
-`\text{Attention_Weights}`{=tex} =
-`\text{Softmax}`{=tex}(`\text{Scaled_Attention_Scores}`{=tex})
+# Scaled Attention Scores
 
-`\text{Attention_Weights}`{=tex} = \[ 0.3303 0.3357 0.3340 \\ 0.3292
-0.3421 0.3287 \\ 0.3306 0.3384 0.3310\]
+```
+[
+0.0136  0.0344  0.0132
+0.0368  0.0928  0.0348
+0.0240  0.0592  0.0184
+]
 
--   **Dimensions of Attention_Weights:** `(3, 3)`
-    -   Each row `i` tells us how much word `i` ("I", "love", or "cats")
-        pays attention to word 1 ("I"), word 2 ("love"), and word 3
-        ("cats").
+Shape = (3 × 3)
+```
+
+---
+
+# Step 1: Softmax for the First Row ("I")
+
+Scaled Scores
+
+```
+[0.0136, 0.0344, 0.0132]
+```
+
+### Calculate the exponential of each value
+
+```
+e^0.0136 ≈ 1.01369
+
+e^0.0344 ≈ 1.03500
+
+e^0.0132 ≈ 1.01329
+```
+
+### Sum of exponentials
+
+```
+1.01369 + 1.03500 + 1.01329
+
+= 3.06198
+```
+
+### Divide each exponential by the sum
+
+```
+0.0136
+
+↓
+
+1.01369 / 3.06198
+
+= 0.3310
+```
+
+```
+0.0344
+
+↓
+
+1.03500 / 3.06198
+
+= 0.3380
+```
+
+```
+0.0132
+
+↓
+
+1.01329 / 3.06198
+
+= 0.3310
+```
+
+Therefore,
+
+```
+Attention Weights for "I"
+
+[0.3310, 0.3380, 0.3310]
+```
+
+Notice that
+
+```
+0.3310 + 0.3380 + 0.3310
+
+≈ 1.00
+```
+
+---
+
+# Step 2: Softmax for the Second Row ("love")
+
+Scaled Scores
+
+```
+[0.0368, 0.0928, 0.0348]
+```
+
+### Calculate exponentials
+
+```
+e^0.0368 ≈ 1.03749
+
+e^0.0928 ≈ 1.09725
+
+e^0.0348 ≈ 1.03541
+```
+
+### Sum
+
+```
+1.03749 + 1.09725 + 1.03541
+
+= 3.17015
+```
+
+### Divide by the sum
+
+```
+1.03749 / 3.17015 = 0.3273
+
+1.09725 / 3.17015 = 0.3461
+
+1.03541 / 3.17015 = 0.3266
+```
+
+Therefore,
+
+```
+Attention Weights for "love"
+
+[0.3273, 0.3461, 0.3266]
+```
+
+---
+
+# Step 3: Softmax for the Third Row ("cats")
+
+Scaled Scores
+
+```
+[0.0240, 0.0592, 0.0184]
+```
+
+### Calculate exponentials
+
+```
+e^0.0240 ≈ 1.02429
+
+e^0.0592 ≈ 1.06099
+
+e^0.0184 ≈ 1.01857
+```
+
+### Sum
+
+```
+1.02429 + 1.06099 + 1.01857
+
+= 3.10385
+```
+
+### Divide by the sum
+
+```
+1.02429 / 3.10385 = 0.3300
+
+1.06099 / 3.10385 = 0.3418
+
+1.01857 / 3.10385 = 0.3282
+```
+
+Therefore,
+
+```
+Attention Weights for "cats"
+
+[0.3300, 0.3418, 0.3282]
+```
+
+---
+
+# Final Attention Weight Matrix
+
+```
+Attention Weights =
+[
+0.3310  0.3380  0.3310
+0.3273  0.3461  0.3266
+0.3300  0.3418  0.3282
+]
+
+Shape = (3 × 3)
+```
+
+---
+
+# Interpretation
+
+Each row tells us how a word distributes its attention across all the words in the sentence.
+
+| Query ↓ / Key → | I | love | cats |
+|-----------------|------:|------:|------:|
+| **I** | 0.3310 | 0.3380 | 0.3310 |
+| **love** | 0.3273 | 0.3461 | 0.3266 |
+| **cats** | 0.3300 | 0.3418 | 0.3282 |
+
+For example, the second row
+
+```
+[0.3273, 0.3461, 0.3266]
+```
+
+means that while updating the word **"love"**, the model gathers:
+
+- **32.73%** of its information from **"I"**
+- **34.61%** from **"love"**
+- **32.66%** from **"cats"**
+
+These attention weights are then multiplied with the **Value (V)** vectors to produce the final context-aware embeddings.
+
+---
+
+# Python Implementation
+
+```python
+import numpy as np
+
+scaled_scores = np.array([
+    [0.0136, 0.0344, 0.0132],
+    [0.0368, 0.0928, 0.0348],
+    [0.0240, 0.0592, 0.0184]
+])
+
+# Apply Softmax row-wise
+exp_scores = np.exp(scaled_scores)
+
+attention_weights = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+
+print(attention_weights)
+```
+
+### Output
+
+```python
+[[0.3310 0.3380 0.3310]
+ [0.3273 0.3461 0.3266]
+ [0.3300 0.3418 0.3282]]
+```
+One small note: because our example uses very small attention scores, the Softmax outputs are quite close to each other (around 0.33). In real Transformer models, the vectors are much larger (for example, dk = 64), so the attention weights often differ much more dramatically, allowing the model to focus strongly on the most relevant tokens.
 
 ------------------------------------------------------------------------
 
