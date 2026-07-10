@@ -663,56 +663,308 @@ These scores are then converted into probabilities using **Softmax**.
 
 Finally, the attention weights are multiplied with the **Value (V)** vectors to generate the new context-aware embedding.
 
+# 4. Attention Score: Q × Kᵀ
+
+This is where the model determines **how much each word should pay attention to every other word**.
+
+The attention scores are calculated by taking the **dot product** between the **Query (Q)** vector of each word and the **Key (K)** vectors of all words.
+
 ---
 
-## Summary
+## Query Matrix (Q)
 
-The operation **Q × Kᵀ** computes the similarity between the Query vector of every token and the Key vectors of all tokens in the sequence.
+```
+Q =
+[
+ 0.04  0.12  0.08  0.12
+ 0.12  0.28  0.24  0.28
+ 0.10  0.04  0.20  0.14
+]
 
-The resulting **Attention Score Matrix** tells the model **how much attention each token should pay to every other token**.
+Shape = (3 × 4)
+```
 
-These attention scores are then normalized using **Softmax** and used to combine the **Value vectors**, producing context-aware embeddings.
+---
 
-**The calculation:** We multiply the Query matrix (Q) by the transpose
-of the Key matrix (Kᵀ).
+## Key Matrix (K)
 
--   `Q`: `(seq_len, d_k)` = `(3, 4)`
--   `K^T`: `(d_k, seq_len)` = `(4, 3)` (transpose of K which is
-    `(3, 4)`)
--   `Attention_Scores`: `(seq_len, seq_len)` = `(3, 3)`
+```
+K =
+[
+ 0.08  0.04  0.15  0.06
+ 0.24  0.12  0.35  0.14
+ 0.20  0.10  0.05  0.02
+]
 
-The result will be a `(3, 3)` matrix, where each element `(i, j)`
-represents the attention score of Query `i` looking at Key `j`.
+Shape = (3 × 4)
+```
 
-`\text{Attention_Scores}`{=tex} = Q × Kᵀ
+---
 
-`\text{Attention_Scores}`{=tex} = \[ 0.04 0.12 0.08 0.12 \\ 0.09 0.21
-0.13 0.17 \\ 0.12 0.02 0.20 0.13\] × \[ 0.08 0.18 0.20 \\ 0.04 0.13 0.11
-\\ 0.15 0.25 0.19 \\ 0.06 0.14 0.11\]
+## Transpose the Key Matrix
 
-Let's calculate the first row (attention scores for "I" looking at "I",
-"love", "cats"):
+To perform matrix multiplication, we first transpose the Key matrix.
 
--   **"I" (Query 1) vs "I" (Key 1):** `[0.04, 0.12, 0.08, 0.12]` ·
-    `[0.08, 0.04, 0.15, 0.06]` = (0.04 × 0.08) + (0.12 × 0.04) + (0.08 ×
-    0.15) + (0.12 × 0.06) = 0.0032 + 0.0048 + 0.0120 + 0.0072 = 0.0272
+```
+Kᵀ =
+[
+ 0.08  0.24  0.20
+ 0.04  0.12  0.10
+ 0.15  0.35  0.05
+ 0.06  0.14  0.02
+]
 
--   **"I" (Query 1) vs "love" (Key 2):** `[0.04, 0.12, 0.08, 0.12]` ·
-    `[0.18, 0.13, 0.25, 0.14]` = (0.04 × 0.18) + (0.12 × 0.13) + (0.08 ×
-    0.25) + (0.12 × 0.14) = 0.0072 + 0.0156 + 0.0200 + 0.0168 = 0.0596
+Shape = (4 × 3)
+```
 
--   **"I" (Query 1) vs "cats" (Key 3):** `[0.04, 0.12, 0.08, 0.12]` ·
-    `[0.20, 0.11, 0.19, 0.11]` = (0.04 × 0.20) + (0.12 × 0.11) + (0.08 ×
-    0.19) + (0.12 × 0.11) = 0.0080 + 0.0132 + 0.0152 + 0.0132 = 0.0496
+Now,
 
-So, the first row of Attention Scores is `[0.0272, 0.0596, 0.0496]`
+```
+Q × Kᵀ
 
-Performing similar calculations for the other rows:
+(3 × 4)
 
-`\text{Attention_Scores}`{=tex} = \[ 0.0272 0.0596 0.0496 \\ 0.0594
-0.1287 0.1083 \\ 0.0468 0.0964 0.0886\]
+×
 
--   **Dimensions of Attention_Scores:** `(3, 3)`
+(4 × 3)
+
+↓
+
+(3 × 3)
+```
+
+The resulting matrix contains the **Attention Scores**.
+
+---
+
+# Step 1: Query of "I"
+
+Query Vector
+
+```
+Q(I)
+
+[0.04, 0.12, 0.08, 0.12]
+```
+
+### Score(I, I)
+
+```
+= (0.04 × 0.08)
++ (0.12 × 0.04)
++ (0.08 × 0.15)
++ (0.12 × 0.06)
+
+= 0.0032
++ 0.0048
++ 0.0120
++ 0.0072
+
+= 0.0272
+```
+
+---
+
+### Score(I, love)
+
+```
+= (0.04 × 0.24)
++ (0.12 × 0.12)
++ (0.08 × 0.35)
++ (0.12 × 0.14)
+
+= 0.0096
++ 0.0144
++ 0.0280
++ 0.0168
+
+= 0.0688
+```
+
+---
+
+### Score(I, cats)
+
+```
+= (0.04 × 0.20)
++ (0.12 × 0.10)
++ (0.08 × 0.05)
++ (0.12 × 0.02)
+
+= 0.0080
++ 0.0120
++ 0.0040
++ 0.0024
+
+= 0.0264
+```
+
+---
+
+# Step 2: Query of "love"
+
+Query Vector
+
+```
+Q(love)
+
+[0.12, 0.28, 0.24, 0.28]
+```
+
+### Score(love, I)
+
+```
+= (0.12 × 0.08)
++ (0.28 × 0.04)
++ (0.24 × 0.15)
++ (0.28 × 0.06)
+
+= 0.0096
++ 0.0112
++ 0.0360
++ 0.0168
+
+= 0.0736
+```
+
+---
+
+### Score(love, love)
+
+```
+= (0.12 × 0.24)
++ (0.28 × 0.12)
++ (0.24 × 0.35)
++ (0.28 × 0.14)
+
+= 0.0288
++ 0.0336
++ 0.0840
++ 0.0392
+
+= 0.1856
+```
+
+---
+
+### Score(love, cats)
+
+```
+= (0.12 × 0.20)
++ (0.28 × 0.10)
++ (0.24 × 0.05)
++ (0.28 × 0.02)
+
+= 0.0240
++ 0.0280
++ 0.0120
++ 0.0056
+
+= 0.0696
+```
+
+---
+
+# Step 3: Query of "cats"
+
+Query Vector
+
+```
+Q(cats)
+
+[0.10, 0.04, 0.20, 0.14]
+```
+
+### Score(cats, I)
+
+```
+= (0.10 × 0.08)
++ (0.04 × 0.04)
++ (0.20 × 0.15)
++ (0.14 × 0.06)
+
+= 0.0080
++ 0.0016
++ 0.0300
++ 0.0084
+
+= 0.0480
+```
+
+---
+
+### Score(cats, love)
+
+```
+= (0.10 × 0.24)
++ (0.04 × 0.12)
++ (0.20 × 0.35)
++ (0.14 × 0.14)
+
+= 0.0240
++ 0.0048
++ 0.0700
++ 0.0196
+
+= 0.1184
+```
+
+---
+
+### Score(cats, cats)
+
+```
+= (0.10 × 0.20)
++ (0.04 × 0.10)
++ (0.20 × 0.05)
++ (0.14 × 0.02)
+
+= 0.0200
++ 0.0040
++ 0.0100
++ 0.0028
+
+= 0.0368
+```
+
+---
+
+# Final Attention Score Matrix
+
+```
+Attention Scores =
+[
+ 0.0272  0.0688  0.0264
+ 0.0736  0.1856  0.0696
+ 0.0480  0.1184  0.0368
+]
+
+Shape = (3 × 3)
+```
+
+## Interpretation
+
+Each **row** represents the **Query** of one word.
+
+Each **column** represents the **Key** of one word.
+
+| Query ↓ / Key → | I | love | cats |
+|-----------------|------:|------:|------:|
+| **I** | 0.0272 | 0.0688 | 0.0264 |
+| **love** | 0.0736 | 0.1856 | 0.0696 |
+| **cats** | 0.0480 | 0.1184 | 0.0368 |
+
+For example:
+
+- **0.0272** is the similarity between **Query(I)** and **Key(I)**.
+- **0.0688** is the similarity between **Query(I)** and **Key(love)**.
+- **0.0264** is the similarity between **Query(I)** and **Key(cats)**.
+
+These values are called **raw attention scores**.
+
+In the next step, these scores are divided by **√dk** and then passed through the **Softmax** function to obtain the final **attention weights**.
+
+
 
 ------------------------------------------------------------------------
 
