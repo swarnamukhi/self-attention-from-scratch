@@ -964,6 +964,38 @@ These values are called **raw attention scores**.
 
 In the next step, these scores are divided by **√dk** and then passed through the **Softmax** function to obtain the final **attention weights**.
 
+## Interpretation of the Raw Attention Scores
+
+The matrix above contains the **raw similarity scores** between the Query vector of each word and the Key vectors of all words.
+
+For example,
+
+- **0.0272** measures the similarity between **Query(I)** and **Key(I)**.
+- **0.0688** measures the similarity between **Query(I)** and **Key(love)**.
+- **0.0264** measures the similarity between **Query(I)** and **Key(cats)**.
+
+Similarly,
+
+- **0.0736** measures the similarity between **Query(love)** and **Key(I)**.
+- **0.1856** measures the similarity between **Query(love)** and **Key(love)**.
+- **0.0696** measures the similarity between **Query(love)** and **Key(cats)**.
+
+Likewise,
+
+- **0.0480** measures the similarity between **Query(cats)** and **Key(I)**.
+- **0.1184** measures the similarity between **Query(cats)** and **Key(love)**.
+- **0.0368** measures the similarity between **Query(cats)** and **Key(cats)**.
+
+At this stage, these values are only **raw similarity scores**.
+
+They are **not probabilities** and **do not yet indicate how much attention each word receives**.
+
+To convert these similarity scores into meaningful attention weights, the next step is:
+
+1. Scale the scores by dividing by √dk.
+2. Apply the Softmax function.
+
+After Softmax, every row becomes a probability distribution whose values sum to 1.
 
 
 ------------------------------------------------------------------------
