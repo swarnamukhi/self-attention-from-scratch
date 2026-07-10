@@ -1025,18 +1025,350 @@ root of the dimension of the Key vectors (`d_k`). In our case,
     distribution, preventing the softmax from becoming too extreme and
     allowing for more stable training.
 
-Let's calculate √dk: `d_k = 4` `sqrt(d_k) = sqrt(4) = 2`
+After calculating the **Raw Attention Scores**, the next step is to scale them by dividing each score by the square root of the Key vector dimension.
 
-Now, divide every element in our `Attention_Scores` matrix by 2:
+The formula is
 
-`\text{Scaled_Attention_Scores}`{=tex} = `\frac{1}{√dk}`{=tex} ×
-`\text{Attention_Scores}`{=tex}
+```
+Scaled Attention Scores = Attention Scores / √dk
+```
 
-`\text{Scaled_Attention_Scores}`{=tex} = `\frac{1}{2}`{=tex} × \[ 0.0272
-0.0596 0.0496 \\ 0.0594 0.1287 0.1083 \\ 0.0468 0.0964 0.0886\]
+where
 
-`\text{Scaled_Attention_Scores}`{=tex} = \[ 0.0136 0.0298 0.0248 \\
-0.0297 0.06435 0.05415 \\ 0.0234 0.0482 0.0443\]
+```
+dk = Dimension of the Key vector
+```
+
+In our example,
+
+```
+Key Vector Dimension = 4
+
+√dk = √4 = 2
+```
+
+Therefore,
+
+```
+Scaled Attention Scores = Attention Scores / 2
+```
+
+---
+
+# Why Do We Need Scaling?
+
+To understand why scaling is required, let's first understand what happens without it.
+
+Suppose we have two vectors.
+
+```
+Q = [1, 2]
+
+K = [3, 4]
+```
+
+Their dot product is
+
+```
+1×3 + 2×4
+
+= 3 + 8
+
+= 11
+```
+
+Now suppose the vectors become much larger.
+
+```
+Q = 768 values
+
+K = 768 values
+```
+
+Every multiplication contributes to the final dot product.
+
+Instead of
+
+```
+11
+```
+
+the score may become
+
+```
+35
+
+62
+
+105
+
+180
+
+250
+```
+
+As the vector dimension increases, the dot product naturally becomes larger.
+
+This is exactly what happens in real Transformer models.
+
+For example,
+
+BERT uses
+
+```
+dk = 64
+```
+
+GPT-2 uses
+
+```
+dk = 64
+```
+
+Larger Transformer models may also use much larger dimensions.
+
+Therefore, the raw attention scores can become very large.
+
+---
+
+# What Problem Does This Create?
+
+The next operation after calculating the attention scores is **Softmax**.
+
+Softmax converts scores into probabilities.
+
+Consider these scores.
+
+```
+[2, 3, 4]
+```
+
+Softmax produces
+
+```
+[0.09, 0.24, 0.67]
+```
+
+The model still considers all three words.
+
+Now imagine much larger scores.
+
+```
+[20, 30, 40]
+```
+
+Softmax becomes approximately
+
+```
+[0.00, 0.00, 1.00]
+```
+
+Now almost all the attention goes to a single word.
+
+The remaining words receive almost zero attention.
+
+---
+
+# Why Is This Bad?
+
+Suppose our sentence is
+
+```
+I love cats
+```
+
+If the attention becomes
+
+```
+[0.00, 0.00, 1.00]
+```
+
+the model completely ignores
+
+```
+I
+
+love
+```
+
+and only looks at
+
+```
+cats
+```
+
+The model becomes **too confident**.
+
+It cannot learn balanced relationships between words.
+
+---
+
+# Another Problem During Training
+
+Deep learning models learn using **Backpropagation**.
+
+Backpropagation depends on gradients.
+
+When Softmax becomes
+
+```
+[0.00, 0.00, 1.00]
+```
+
+the gradients become extremely small.
+
+This is called **gradient saturation**.
+
+Small gradients mean
+
+- slower learning
+- unstable training
+- poor convergence
+
+As a result, the model becomes difficult to train.
+
+---
+
+# How Scaling Solves This Problem
+
+Instead of directly using
+
+```
+Attention Scores
+```
+
+we divide them by
+
+```
+√dk
+```
+
+This reduces their magnitude.
+
+Example
+
+Raw Attention Scores
+
+```
+[
+0.0272  0.0688  0.0264
+
+0.0736  0.1856  0.0696
+
+0.0480  0.1184  0.0368
+]
+```
+
+Since
+
+```
+dk = 4
+
+√dk = 2
+```
+
+Divide every element by 2.
+
+```
+Scaled Attention Scores
+
+[
+0.0136  0.0344  0.0132
+
+0.0368  0.0928  0.0348
+
+0.0240  0.0592  0.0184
+]
+```
+
+Shape
+
+```
+(3 × 3)
+```
+
+Notice that every value becomes smaller.
+
+These smaller values allow Softmax to produce a smoother probability distribution.
+
+---
+
+# Real-Time Example
+
+Imagine three students writing an exam.
+
+Without scaling
+
+```
+Marks
+
+98
+
+12
+
+10
+```
+
+The topper completely dominates.
+
+Now suppose we normalize the marks.
+
+```
+49
+
+6
+
+5
+```
+
+The differences become smaller.
+
+Everyone still contributes.
+
+Scaling works in a similar way.
+
+It prevents one word from dominating all the attention.
+
+---
+
+# Python Implementation
+
+```python
+import numpy as np
+
+attention_scores = np.array([
+    [0.0272, 0.0688, 0.0264],
+    [0.0736, 0.1856, 0.0696],
+    [0.0480, 0.1184, 0.0368]
+])
+
+dk = 4
+
+scaled_scores = attention_scores / np.sqrt(dk)
+
+print(scaled_scores)
+```
+
+Output
+
+```python
+[
+ [0.0136 0.0344 0.0132]
+ [0.0368 0.0928 0.0348]
+ [0.0240 0.0592 0.0184]
+]
+```
+
+---
+
+# Summary
+
+- The dot product becomes larger as the vector dimension increases.
+- Large attention scores make the Softmax function extremely sharp.
+- Sharp Softmax distributions cause gradient saturation during training.
+- Gradient saturation makes learning unstable and slow.
+- Dividing by √dk keeps the attention scores at a reasonable scale.
+- This allows Softmax to produce smoother attention weights and improves training stability.
 
 -   **Dimensions of Scaled_Attention_Scores:** `(3, 3)`
 
