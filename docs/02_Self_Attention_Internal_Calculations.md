@@ -1689,46 +1689,353 @@ weighted sum of the Value vectors.
     of the word. Value vectors are specifically designed to carry the
     information that should be propagated.
 
-**The calculation:** We multiply the `Attention_Weights` matrix by the
-`Value` matrix (V).
+# 7. Weighted Sum: Attention Weights × Value Matrix
 
--   `Attention_Weights`: `(seq_len, seq_len)` = `(3, 3)`
--   `V`: `(seq_len, d_model)` = `(3, 4)`
--   `Output_Embeddings`: `(seq_len, d_model)` = `(3, 4)`
+The Attention Weights tell us **how much information to take** from each word.
 
-Each row in the `Output_Embeddings` will be the new, contextualized
-embedding for a word.
+The Value Matrix contains the **actual information** that will be combined.
 
-`\text{Output_Embeddings}`{=tex} = `\text{Attention_Weights}`{=tex} × V
+The output embedding is calculated as
 
-`\text{Output_Embeddings}`{=tex} = \[ 0.3303 0.3357 0.3340 \\ 0.3292
-0.3421 0.3287 \\ 0.3306 0.3384 0.3310\] × \[ 0.10 0.04 0.08 0.08 \\ 0.21
-0.12 0.19 0.20 \\ 0.08 0.10 0.11 0.02\]
+```
+Output Embedding = Attention Weights × Value Matrix
+```
 
-Let's calculate the first row of `Output_Embeddings` (new embedding for
-"I"): `[0.3303, 0.3357, 0.3340]` (attention weights for "I") × V
+---
 
--   **First element of new "I" embedding:** (0.3303 × 0.10) + (0.3357 ×
-    0.21) + (0.3340 × 0.08) = 0.03303 + 0.070497 + 0.02672 = 0.130247
+## Attention Weight Matrix
 
--   **Second element of new "I" embedding:** (0.3303 × 0.04) + (0.3357 ×
-    0.12) + (0.3340 × 0.10) = 0.013212 + 0.040284 + 0.03340 = 0.086896
+```
+                I      love    cats
 
--   **Third element of new "I" embedding:** (0.3303 × 0.08) + (0.3357 ×
-    0.19) + (0.3340 × 0.11) = 0.026424 + 0.063783 + 0.03674 = 0.126947
+I
 
--   **Fourth element of new "I" embedding:** (0.3303 × 0.08) + (0.3357 ×
-    0.20) + (0.3340 × 0.02) = 0.026424 + 0.06714 + 0.00668 = 0.100244
+[0.3310 0.3380 0.3310]
 
-So, the new contextualized embedding for "I" is approximately
-`[0.1302, 0.0869, 0.1269, 0.1002]`.
+love
 
-Performing similar calculations for "love" and "cats":
+[0.3273 0.3461 0.3266]
 
-`\text{Output_Embeddings}`{=tex} = \[ 0.1302 0.0869 0.1269 0.1002 \\
-0.1352 0.0903 0.1320 0.1054 \\ 0.1293 0.0864 0.1265 0.0999\]
+cats
 
--   **Dimensions of Output_Embeddings:** `(3, 4)`
+[0.3300 0.3418 0.3282]
+```
+
+Shape
+
+```
+(3 × 3)
+```
+
+---
+
+## Value Matrix
+
+```
+                Feature1 Feature2 Feature3 Feature4
+
+I
+
+[0.10 0.04 0.08 0.08]
+
+love
+
+[0.22 0.12 0.20 0.20]
+
+cats
+
+[0.04 0.10 0.12 0.02]
+```
+
+Shape
+
+```
+(3 × 4)
+```
+
+---
+
+# Updating "I"
+
+Attention Weights
+
+```
+[0.3310 0.3380 0.3310]
+```
+
+Calculation
+
+```
+0.3310 × V(I)
+
++
+
+0.3380 × V(love)
+
++
+
+0.3310 × V(cats)
+```
+
+```
+=
+
+0.3310 ×
+
+[0.10 0.04 0.08 0.08]
+
++
+
+0.3380 ×
+
+[0.22 0.12 0.20 0.20]
+
++
+
+0.3310 ×
+
+[0.04 0.10 0.12 0.02]
+```
+
+```
+=
+
+[
+0.03310
+0.01324
+0.02648
+0.02648
+]
+
++
+
+[
+0.07436
+0.04056
+0.06760
+0.06760
+]
+
++
+
+[
+0.01324
+0.03310
+0.03972
+0.00662
+]
+```
+
+```
+=
+
+[
+0.12070
+0.08690
+0.13380
+0.10070
+]
+```
+
+---
+
+# Updating "love"
+
+Attention Weights
+
+```
+[0.3273 0.3461 0.3266]
+```
+
+Calculation
+
+```
+0.3273 × V(I)
+
++
+
+0.3461 × V(love)
+
++
+
+0.3266 × V(cats)
+```
+
+```
+=
+
+0.3273 ×
+
+[0.10 0.04 0.08 0.08]
+
++
+
+0.3461 ×
+
+[0.22 0.12 0.20 0.20]
+
++
+
+0.3266 ×
+
+[0.04 0.10 0.12 0.02]
+```
+
+```
+=
+
+[
+0.03273
+0.01309
+0.02618
+0.02618
+]
+
++
+
+[
+0.07614
+0.04153
+0.06922
+0.06922
+]
+
++
+
+[
+0.01306
+0.03266
+0.03919
+0.00653
+]
+```
+
+```
+=
+
+[
+0.12193
+0.08728
+0.13459
+0.10193
+]
+```
+
+---
+
+# Updating "cats"
+
+Attention Weights
+
+```
+[0.3300 0.3418 0.3282]
+```
+
+Calculation
+
+```
+0.3300 × V(I)
+
++
+
+0.3418 × V(love)
+
++
+
+0.3282 × V(cats)
+```
+
+```
+=
+
+0.3300 ×
+
+[0.10 0.04 0.08 0.08]
+
++
+
+0.3418 ×
+
+[0.22 0.12 0.20 0.20]
+
++
+
+0.3282 ×
+
+[0.04 0.10 0.12 0.02]
+```
+
+```
+=
+
+[
+0.03300
+0.01320
+0.02640
+0.02640
+]
+
++
+
+[
+0.07520
+0.04102
+0.06836
+0.06836
+]
+
++
+
+[
+0.01313
+0.03282
+0.03938
+0.00656
+]
+```
+
+```
+=
+
+[
+0.12133
+0.08704
+0.13414
+0.10132
+]
+```
+
+---
+
+# Final Output Embedding Matrix
+
+```
+Output Embeddings
+
+[
+0.12070 0.08690 0.13380 0.10070
+
+0.12193 0.08728 0.13459 0.10193
+
+0.12133 0.08704 0.13414 0.10132
+]
+```
+
+Shape
+
+```
+(3 × 4)
+```
+
+Each row represents the **new context-aware embedding**.
+
+| Word | New Context-Aware Embedding |
+|------|------------------------------|
+| **I** | `[0.12070, 0.08690, 0.13380, 0.10070]` |
+| **love** | `[0.12193, 0.08728, 0.13459, 0.10193]` |
+| **cats** | `[0.12133, 0.08704, 0.13414, 0.10132]` |
+
+The output embeddings have the **same shape** as the input embeddings `(3 × 4)`, but each embedding now contains information gathered from **all the words in the sentence**. This is why they are called **context-aware embeddings**.
 
 ------------------------------------------------------------------------
 
