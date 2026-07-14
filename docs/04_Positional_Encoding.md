@@ -380,5 +380,403 @@ These functions
 - produce consistent positional representations
 
 This technique is called **Sinusoidal Positional Encoding**.
+# Why Did the Transformer Use Sine and Cosine?
+
+At first glance, it may seem that the only reason for choosing sine and cosine is that their outputs are bounded between **-1 and 1**.
+
+However, this is **not the real reason**.
+
+Many other functions, such as **tanh**, **sigmoid**, and **arctangent**, also produce bounded outputs.
+
+So why did the authors specifically choose **sine** and **cosine**?
+
+Let's understand this step by step.
+
+---
+
+# Requirement 1: Every Position Should Have a Different Representation
+
+Suppose we have the following positions:
+
+```
+1
+2
+3
+4
+5
+```
+
+We need to convert these positions into numerical values.
+
+Many mathematical functions can do this.
+
+For example,
+
+### Square Function
+
+```
+f(x) = x²
+```
+
+| Position | Output |
+|----------|--------|
+|1|1|
+|2|4|
+|3|9|
+|4|16|
+|5|25|
+
+Every position gets a different value.
+
+Similarly,
+
+### Logarithm
+
+```
+f(x) = log(x)
+```
+
+| Position | Output |
+|----------|--------|
+|1|0|
+|2|0.69|
+|3|1.09|
+|4|1.38|
+
+Again,
+
+every position has a different value.
+
+So simply producing different values is **not enough**.
+
+---
+
+# Requirement 2: Values Should Not Become Very Large
+
+Functions like
+
+```
+x²
+x³
+```
+
+grow very quickly.
+
+Example:
+
+```
+Position = 1000
+
+x² = 1,000,000
+x³ = 1,000,000,000
+```
+
+Large values can dominate the word embeddings and make optimization difficult during backpropagation.
+
+Therefore,
+
+the positional values should remain within a reasonable range.
+
+---
+
+# Requirement 3: Why Not Use tanh or Sigmoid?
+
+Let's use
+
+```
+tanh(x)
+```
+
+| Position | tanh(x) |
+|----------|----------|
+|1|0.761|
+|2|0.964|
+|3|0.995|
+|4|0.9993|
+|5|0.9999|
+
+Initially, everything looks fine.
+
+Each position has a different value.
+
+But now consider larger positions.
+
+| Position | tanh(x) |
+|----------|----------|
+|10|0.99999999|
+|20|≈1|
+|50|≈1|
+|100|≈1|
+
+Notice what happened.
+
+After a certain point,
+
+every position becomes almost **1**.
+
+This is called **saturation**.
+
+Now,
+
+```
+Position 50
+
+Position 500
+
+Position 5000
+```
+
+all look almost identical.
+
+The Transformer can no longer distinguish between them.
+
+The same problem occurs with the **sigmoid** function.
+
+---
+
+# Requirement 4: Continuous Variation
+
+Now consider the sine function.
+
+Unlike tanh or sigmoid,
+
+the sine function never becomes constant.
+
+Its values continue changing forever.
+
+Example:
+
+| Position | sin(x) |
+|----------|---------|
+|1|0.84|
+|2|0.91|
+|3|0.14|
+|4|-0.76|
+|5|-0.96|
+|6|-0.28|
+|7|0.66|
+
+Even for very large positions,
+
+```
+Position = 100
+
+Position = 1000
+
+Position = 10000
+```
+
+the output continues to change.
+
+The function never saturates.
+
+This allows the Transformer to generate meaningful encodings even for long sequences.
+
+---
+
+# Requirement 5: Preserve Relative Position
+
+This is the **most important reason**.
+
+During self-attention,
+
+the Transformer is usually more interested in
+
+> **how far apart two words are**
+
+than their exact positions.
+
+Consider the sentence
+
+```
+I love cats
+```
+
+Positions
+
+| Word | Position |
+|------|----------|
+|I|1|
+|love|2|
+|cats|3|
+
+The distance between
+
+```
+love → cats
+```
+
+is
+
+```
+1
+```
+
+Now consider another sentence.
+
+```
+Yesterday I love cats
+```
+
+Positions become
+
+| Word | Position |
+|------|----------|
+|Yesterday|1|
+|I|2|
+|love|3|
+|cats|4|
+
+Although the absolute positions changed,
+
+the distance between
+
+```
+love → cats
+```
+
+is still
+
+```
+1
+```
+
+The Transformer should understand that
+
+```
+love
+```
+
+and
+
+```
+cats
+```
+
+have the same relationship in both sentences.
+
+---
+
+## How Do Sine and Cosine Help?
+
+Sine and cosine satisfy special mathematical identities.
+
+For example,
+
+```
+sin(a + b)
+
+=
+
+sin(a)cos(b)
+
++
+
+cos(a)sin(b)
+```
+
+Similarly,
+
+```
+cos(a + b)
+
+=
+
+cos(a)cos(b)
+
+−
+
+sin(a)sin(b)
+```
+
+These identities allow the positional encoding of
+
+```
+Position + Distance
+```
+
+to be expressed using the encoding of
+
+```
+Position
+```
+
+through simple additions and multiplications.
+
+Since self-attention is built using matrix multiplication and linear transformations,
+
+this mathematical property makes it easier for the network to learn **relative positions**.
+
+---
+
+## Why Can't tanh or Sigmoid Do This?
+
+Suppose we use
+
+```
+tanh(position)
+```
+
+There is no simple identity like
+
+```
+tanh(position + distance)
+
+=
+
+Some simple combination of
+
+tanh(position)
+
+and
+
+distance
+```
+
+Therefore,
+
+the Transformer would have to learn these relationships entirely from data.
+
+Sine and cosine already contain this mathematical structure.
+
+This makes learning positional relationships easier.
+
+---
+
+# Important Note
+
+The Transformer **does not explicitly calculate**
+
+```
+sin(position + distance)
+```
+
+during self-attention.
+
+Instead,
+
+the authors designed the positional encoding using sine and cosine because these mathematical properties are naturally embedded in the encoding vectors.
+
+As a result,
+
+the attention mechanism can more easily learn relationships between nearby and distant words.
+
+---
+
+# Final Summary
+
+The Transformer uses sine and cosine because they satisfy several important requirements simultaneously.
+
+✅ Outputs remain bounded.
+
+✅ Values never saturate.
+
+✅ Every position has a unique multi-dimensional representation.
+
+✅ The encoding naturally extends to long sequences.
+
+✅ Nearby positions produce similar patterns.
+
+✅ Mathematical identities make it easier for the model to learn relative positions.
 
 In the next section, we'll learn how the Transformer uses **sine** and **cosine** equations to generate these positional vectors.
