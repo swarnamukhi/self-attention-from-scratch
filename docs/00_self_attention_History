@@ -1,1 +1,300 @@
+1. Let's go back in history
+Researchers first used RNNs for NLP.
+Sentence :I love deep learningRNN Output
+The RNN processes one word at a time. I → love → deep → learning
+Everything seemed fine.
+2. Then people found a problem
+Suppose we have
+"The movie that I watched yesterday with my friends was fantastic."
+When the RNN reaches fantastic, it needs to remember
+movie
+because fantastic describes the movie.
+But between them are many words.
+movie
+ ↓
+that I watched yesterday with my friends was fantastic
+The information has to travel through many time steps.
+After many steps,
+•	information becomes weak 
+•	gradients vanish 
+•	long-term dependencies are hard to learn 
+This is the long dependency problem.
+3. LSTM solved part of it
+LSTM introduced
+•	Forget Gate 
+•	Input Gate 
+•	Output Gate 
+•	Cell State 
+The cell state acts like a memory.
+Word1
+   ↓
+Cell State
+   ↓
+Word2
+   ↓
+Cell State
+   ↓
+Word3
+Now the model can remember information much longer.
+Great improvement!
+4. But LSTM still had problems
+Even though LSTM remembers better,
+it still processes words like this
+I
+
+↓
+
+love
+
+↓
+
+deep
+
+↓
+
+learning
+Everything is sequential.
+The next word cannot start until the previous word is processed.
+So training becomes slow.
+________________________________________
+Another problem
+Suppose the sentence has 80 words.
+To relate
+Word 1
+
+↓
+
+Word 80
+information must still travel through many LSTM cells.
+Even LSTMs struggle with very long sequences.
+________________________________________
+5. Bahdanau Attention helped
+Now researchers said
+Instead of forcing the decoder to depend on only one final encoder state,
+let the decoder look back at all encoder hidden states.
+Decoder
+
+↓
+
+h1 h2 h3 h4 h5
+Now while generating each word,
+the decoder focuses on the important encoder outputs.
+This greatly improved machine translation.
+6. But another question appeared
+Attention only helped during decoding.
+What about the encoder?
+The encoder was still
+Word1Word2Word3Word4
+It was still an LSTM.
+It still had to process sequentially.
+So researchers asked:
+Can we remove the RNN completely?
+This question led to Self-Attention.
+________________________________________
+7. The main idea of Self-Attention
+Instead of passing information through many hidden states,
+why not let every word directly communicate with every other word?
+Instead of
+Word1Word2Word3Word4
+Use: Word1 ↔ Word2
+Word1 ↔ Word3
+Word1 ↔ Word4
+
+Word2 ↔ Word3
+Word2 ↔ Word4
+
+Word3 ↔ Word4
+Every word can "talk" to every other word.
+No long chain is needed.
+This is the core idea of self-attention:
+self-attention is used in many tasks besides next-word prediction:
+•	Machine Translation 
+•	Text Classification 
+•	Sentiment Analysis 
+•	Question Answering 
+•	Named Entity Recognition 
+•	Summarization 
+•	Next-word prediction (GPT) 
+So predicting the next word is one application, not the definition of self-attention.
+Self-attention allows every word to look at every other word in the same sentence and decide which words are most important for understanding its meaning.
+8. Example
+Sentence
+The animal didn't cross the road because it was tired.
+When processing
+it
+the model asks
+Which word helps me understand "it"?
+Instead of relying on memory,
+it directly looks at
+The
+animal
+didn't
+cross
+road
+because
+it
+was
+tired
+It may assign a high weight to
+animal
+So
+it↓animal
+This direct connection is much easier than remembering through many hidden states.
+10. How does it know which words are important?
+This is where Query, Key, and Value come in.
+Every word embedding creates
+EmbeddingQuery (Q),Key (K),Value (V)
+Every word gets three vectors.
+For example:
+love=Qlove,Klove,Vlove
+QueryCompare with KeysFind best matchesReturn corresponding Values
+Self-attention works in a similar way.
+12. Computing attention
+Suppose we are processing
+love
+Its Query is
+Qlove
+Now compare it with every Key.
+Qlove • KI
+Qlove • Klove
+Qlove • Kdeep
+Qlove • Klearning
+These dot products measure similarity.
+Example
+2.1,4.8,3.7,0.5
+Higher score
+↓
+More related.
+13. Softmax
+Convert the scores into probabilities.
+Softmax
+0.08,0.55,0.30,0.07
+Now all the weights sum to 1
+14. Weighted sum
+Now multiply the weights with the Value vectors.
+0.08 × VI+0.55 × Vlove+0.30 × Vdeep+0.07 × Vlearning
+The result is the new representation of "love", now enriched with information from the whole sentence.
+15. Why is Self-Attention better?
+RNN
+Word1↓Word2↓Word3↓Word4
+Information flows step by step.
+________________________________________
+Self-Attention
+Word1 ↔ Word2,Word1 ↔ Word3,Word1 ↔ Word4,Word2 ↔ Word3,Word2 ↔ Word4,
+Word3 ↔ Word4
+Every word can directly interact with every other word.
+________________________________________
+16. Advantages
+✅ Captures long-range dependencies
+First word-Last word
+No long memory chain is needed.
+________________________________________
+✅ Parallel computation
+RNN
+Word1Word2Word3
+Cannot compute Word3 until Word2 finishes.
+Self-attention
+Word1,Word2,Word3,Word4
+All attention scores can be computed at the same time on GPUs, making training much faster.
+17. One limitation
+Self-attention by itself does not know word order.
+For example:
+Dog bites man.
+and
+Man bites dog.
+contain the same words but different meanings.
+Self-attention alone sees only the set of embeddings and their relationships. It needs additional information about positions.
+Before Self-Attention
+A typical Seq2Seq model looked like this:
+Input Sentence
+Embeddings
+LSTM / GRU / RNN Encoder
+Hidden States
+Bahdanau Attention
+LSTM Decoder
+Output Sentence
+Notice that both the encoder and decoder use RNN/LSTM.
+After Self-Attention (Transformer)
+The architecture becomes:
+Input Sentence
+      ▼
+Embedding
+      ▼
+Positional Encoding
+      ▼
+Self-Attention
+      ▼
+Feed Forward Network
+      ▼
+Output
+There is no RNN.
+There is no LSTM.
+Self-attention becomes the mechanism that models relationships between words.
+Why could RNN/LSTM be removed?
+To understand learning, the information from I has to pass through multiple LSTM steps.
+With self-attention:
+             learning
+          ↙    ↓     ↘
+         I    love   deep
+The word learning can directly access information from every other word in a single attention computation.
+There is no need for hidden states traveling through time.
+Does Self-Attention completely replace LSTM?
+Inside a Transformer, yes.
+Transformers do not use RNN or LSTM layers for sequence modeling.
+Instead, they use:
+•	Self-Attention 
+•	Feed Forward Networks 
+•	Positional Encoding 
+•	Residual Connections 
+•	Layer Normalization
+Does that mean LSTMs are obsolete?
+Not completely.
+LSTMs are still used in some situations:
+•	Small datasets 
+•	Time-series forecasting 
+•	Embedded or edge devices with limited resources 
+•	Legacy systems 
+However, for modern NLP, Transformers have largely replaced LSTMs.
+Examples include:
+•	BERT 
+•	GPT 
+•	T5 
+These models are built on Transformer architectures rather than RNNs or LSTMs.
+One important point
+Self-attention does not replace the entire neural network.
+It only replaces the sequence-processing part that RNNs and LSTMs used to perform.
+For example:
+LSTM model
+Embedding
+      ▼
+LSTM
+      ▼
+Dense
+      ▼
+Output
+Transformer model
+EmbeddinG
+      ▼
+Self-Attention
+      ▼
+Feed Forward Network
+      ▼
+Dense / Output Layer
+The neural network still contains many trainable layers. Self-attention simply replaces the recurrent layers that processed tokens one by one.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
