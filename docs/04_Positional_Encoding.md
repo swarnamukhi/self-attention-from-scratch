@@ -822,5 +822,525 @@ The Transformer uses sine and cosine because they satisfy several important requ
 ✅ Nearby positions produce similar patterns.
 
 ✅ Mathematical identities make it easier for the model to learn relative positions.
+# Why Isn't Sine Alone Enough?
+
+After understanding why positional encoding is needed, the next question is:
+
+> Why did the Transformer use **both sine and cosine**?
+>
+> Why not use only sine or only cosine?
+
+Let's understand this step by step.
+
+---
+
+# Can We Use Only Sine?
+
+Suppose we represent every position using only the sine function.
+
+| Position | sin(Position) |
+|----------|---------------|
+|1|0.84|
+|2|0.91|
+|3|0.14|
+|4|-0.76|
+|5|-0.96|
+
+Initially, every position appears to have a different value.
+
+At first glance, this looks sufficient.
+
+However, there is a problem.
+
+---
+
+## Problem: Sine is Periodic
+
+The sine function repeats itself every **2π**.
+
+For example,
+
+```
+sin(0)  = 0
+
+sin(2π) = 0
+
+sin(4π) = 0
+```
+
+Similarly,
+
+many different positions can eventually produce the same sine value.
+
+If we represent a position using **only one sine value**, different positions may become indistinguishable.
+
+Therefore,
+
+**using only sine is not reliable for uniquely representing positions.**
+
+---
+
+# Can We Use Only Cosine?
+
+The cosine function has the same issue.
+
+```
+cos(0)  = 1
+
+cos(2π) = 1
+
+cos(4π) = 1
+```
+
+Cosine also repeats after every **2π**.
+
+Therefore,
+
+using only cosine also cannot uniquely represent every position.
+
+---
+
+# Why Use Both Sine and Cosine Together?
+
+Instead of representing a position using a single value,
+
+```
+Position 1
+
+↓
+
+0.84
+```
+
+the Transformer represents it using **two values**.
+
+```
+Position 1
+
+↓
+
+[ sin(position), cos(position) ]
+```
+
+Example:
+
+| Position | sin | cos |
+|----------|------|------|
+|1|0.84|0.54|
+|2|0.91|-0.42|
+|3|0.14|-0.99|
+|4|-0.76|-0.65|
+
+Now every position is represented as a **2-dimensional point** instead of a single number.
+
+This already provides a richer positional representation.
+
+---
+
+# Why Isn't Two Numbers Enough?
+
+Suppose our Transformer has
+
+```
+d_model = 512
+```
+
+Every word embedding contains
+
+```
+512 values.
+```
+
+Example
+
+```
+Embedding("love")
+
+[
+0.10,
+0.25,
+-0.81,
+...
+512 values
+]
+```
+
+If positional encoding contained only
+
+```
+[
+sin(position),
+cos(position)
+]
+```
+
+it would contain only **2 values**.
+
+We cannot add
+
+```
+512-dimensional embedding
+
++
+
+2-dimensional positional vector
+```
+
+because both vectors must have the **same dimensions**.
+
+Therefore,
+
+the positional encoding must also contain **512 values**.
+
+---
+
+# How Do We Generate 512 Positional Values?
+
+Many beginners think we calculate
+
+```
+sin(embedding value)
+
+cos(embedding value)
+```
+
+This is **incorrect**.
+
+The sine and cosine functions are **never applied to the embedding values**.
+
+Instead,
+
+they are applied only to the **position number**.
+
+For example,
+
+```
+Word : love
+
+Position : 1
+```
+
+The position remains **1** throughout the calculation.
+
+The only thing that changes is the **frequency**.
+
+---
+
+# Idea Behind Multiple Sine and Cosine Functions
+
+Suppose
+
+```
+Position = 1
+```
+
+Instead of computing only
+
+```
+sin(1)
+
+cos(1)
+```
+
+the Transformer computes
+
+```
+sin(1 / Frequency1)
+
+cos(1 / Frequency1)
+
+sin(1 / Frequency2)
+
+cos(1 / Frequency2)
+
+sin(1 / Frequency3)
+
+cos(1 / Frequency3)
+
+...
+
+```
+
+Each frequency produces
+
+```
+1 sine value
+
++
+
+1 cosine value
+```
+
+If we use
+
+```
+256 different frequencies
+```
+
+we obtain
+
+```
+256 sine values
+
++
+
+256 cosine values
+
+=
+
+512 positional values
+```
+
+Now,
+
+the positional encoding has exactly the same dimension as the word embedding.
+
+---
+
+# Visual Intuition
+
+Think of the position as a single input.
+
+```
+Position = 1
+```
+
+Now imagine **256 different sine/cosine calculators**.
+
+Calculator 1
+
+```
+sin(position / Frequency1)
+
+cos(position / Frequency1)
+```
+
+Calculator 2
+
+```
+sin(position / Frequency2)
+
+cos(position / Frequency2)
+```
+
+Calculator 3
+
+```
+sin(position / Frequency3)
+
+cos(position / Frequency3)
+```
+
+...
+
+Calculator 256
+
+```
+sin(position / Frequency256)
+
+cos(position / Frequency256)
+```
+
+Each calculator contributes **two numbers**.
+
+Together they create a **512-dimensional positional vector**.
+
+---
+
+# Where Do These Frequencies Come From?
+
+The Transformer uses the following equations.
+
+For even dimensions,
+
+```
+PE(pos,2i)
+
+=
+
+sin(pos / 10000^(2i/d_model))
+```
+
+For odd dimensions,
+
+```
+PE(pos,2i+1)
+
+=
+
+cos(pos / 10000^(2i/d_model))
+```
+
+Notice something important.
+
+The **position (`pos`) never changes**.
+
+Only
+
+```
+i
+```
+
+changes.
+
+Changing `i`
+
+changes the denominator
+
+```
+10000^(2i/d_model)
+```
+
+which changes the **frequency (or wavelength)** of the sine and cosine wave.
+
+Therefore,
+
+every pair of dimensions uses a different sine/cosine wave.
+
+Some waves change very quickly.
+
+Some waves change slowly.
+
+Some waves change very slowly.
+
+Together,
+
+these waves create a unique positional signature for every position.
+
+---
+
+# Example (Simplified)
+
+Suppose
+
+```
+Position = 1
+```
+
+Then the first few positional values might look conceptually like
+
+```
+Dimension 0
+
+↓
+
+sin(1 / Frequency1)
+```
+
+```
+Dimension 1
+
+↓
+
+cos(1 / Frequency1)
+```
+
+```
+Dimension 2
+
+↓
+
+sin(1 / Frequency2)
+```
+
+```
+Dimension 3
+
+↓
+
+cos(1 / Frequency2)
+```
+
+```
+Dimension 4
+
+↓
+
+sin(1 / Frequency3)
+```
+
+```
+Dimension 5
+
+↓
+
+cos(1 / Frequency3)
+```
+
+...
+
+until all **512 dimensions** are generated.
+
+---
+
+# Final Step
+
+Now we have
+
+### Word Embedding
+
+```
+[
+0.10,
+0.25,
+-0.81,
+...
+512 values
+]
+```
+
+### Positional Encoding
+
+```
+[
+0.84,
+0.54,
+0.10,
+0.99,
+...
+512 values
+]
+```
+
+Finally,
+
+the Transformer performs an **element-wise addition**.
+
+```
+Final Input
+
+=
+
+Word Embedding
+
++
+
+Positional Encoding
+```
+
+The resulting vector contains
+
+- semantic information (from the embedding)
+- positional information (from positional encoding)
+
+This final vector is then passed to the **Self-Attention** layer.
+
+---
+
+# Key Takeaways
+
+✅ Word embeddings represent the **meaning** of words.
+
+✅ Positional encodings represent the **position** of words.
+
+✅ Sine and cosine are applied only to the **position**, never to the embedding values.
+
+✅ A 512-dimensional embedding requires a 512-dimensional positional encoding.
+
+✅ Each pair of dimensions uses a different sine/cosine frequency.
+
+✅ 256 sine values + 256 cosine values = 512-dimensional positional encoding.
+
+✅ The final Transformer input is obtained by adding the embedding vector and the positional encoding vector.
 
 In the next section, we'll learn how the Transformer uses **sine** and **cosine** equations to generate these positional vectors.
