@@ -577,9 +577,9 @@ This allows the Transformer to generate meaningful encodings even for long seque
 # Requirement 5: Preserve Relative Position
 There are two concepts:
 
-Absolute Position
-Relative Position
-Absolute Position:
+Absolute Position,
+Relative Position,
+# Absolute Position:
 
 This tells us the exact location of a word.
 
