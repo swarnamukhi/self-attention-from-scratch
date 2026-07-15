@@ -575,6 +575,50 @@ This allows the Transformer to generate meaningful encodings even for long seque
 ---
 
 # Requirement 5: Preserve Relative Position
+There are two concepts:
+
+Absolute Position
+Relative Position
+Absolute Position:
+
+This tells us the exact location of a word.
+
+Example:
+
+I love cats
+Word	Absolute Position
+I	1
+love	2
+cats	3
+
+Here,
+
+"love" is at position 2.
+"cats" is at position 3.
+
+This is absolute position.
+Relative Position:
+
+Relative position tells us how far apart two words are, not their exact positions.
+
+Example:
+
+I love cats
+I      love      cats
+1        2         3
+
+Distance between
+
+love and cats = 1
+
+I and cats = 2
+
+I and love = 1
+
+These distances are the relative positions.
+That is why relative position is often more important than absolute position.
+
+Many modern Transformers (like T5, DeBERTa, Transformer-XL, etc.) use relative positional encodings because attention often depends more on the distance between words than on their absolute indices.
 
 This is the **most important reason**.
 
