@@ -261,6 +261,215 @@ Pooling
 ```
 
 ---
+# What Does "Activation" Mean?
+
+One of the biggest confusions in Deep Learning is the word **activation**.
+
+Many beginners think
+
+```
+Activation
+
+=
+
+Output after ReLU
+```
+
+This is **not completely correct**.
+
+In Deep Learning,
+
+an **activation** simply means
+
+> **The output produced by any neural network layer.**
+
+The layer may or may not contain an activation function.
+
+---
+
+## Example 1 : ANN
+
+```
+Input
+
+↓
+
+Dense Layer
+
+↓
+
+ReLU
+
+↓
+
+Output
+```
+
+The output after ReLU is called an activation.
+
+---
+
+## Example 2 : Transformer
+
+The Transformer Encoder begins with
+
+```
+Embedding
+
+↓
+
+Positional Encoding
+
+↓
+
+Multi-Head Attention
+```
+
+Notice
+
+There is **no ReLU** here.
+
+Suppose the embedding of the word
+
+```
+love
+```
+
+is
+
+```
+[5,1,2,3]
+```
+
+After Multi-Head Attention,
+
+suppose we obtain
+
+```
+[2,4,3,5]
+```
+
+This vector is already called an **activation** because it is the output of the Multi-Head Attention layer.
+
+No activation function has been applied.
+
+---
+
+## Residual Connection
+
+Transformer now adds the original input.
+
+```
+Input
+
+[5,1,2,3]
+
++
+
+Attention Output
+
+[2,4,3,5]
+
+=
+
+[7,5,5,8]
+```
+
+This new vector
+
+```
+[7,5,5,8]
+```
+
+is also an activation because it is the output of the Residual Add operation.
+
+---
+
+## Layer Normalization
+
+LayerNorm receives
+
+```
+[7,5,5,8]
+```
+
+It computes
+
+- Mean
+- Standard Deviation
+
+and produces
+
+```
+[0.58,-0.96,-0.96,1.35]
+```
+
+LayerNorm is **normalizing the activation**, i.e., the output produced by the previous layer.
+
+---
+
+## Feed Forward Network
+
+After LayerNorm,
+
+the vector enters the Feed Forward Network.
+
+```
+LayerNorm
+
+↓
+
+Dense
+
+↓
+
+GELU (or ReLU)
+
+↓
+
+Dense
+```
+
+Suppose the Feed Forward Network outputs
+
+```
+[3.9,-0.05,5.9,-0.01]
+```
+
+This is again an activation.
+
+The Transformer again performs
+
+```
+Residual Add
+
+↓
+
+LayerNorm
+```
+
+before sending the output to the next encoder layer.
+
+---
+
+# Important Observation
+
+LayerNorm is **not waiting for a ReLU**.
+
+It normalizes the **output of the previous layer**, regardless of whether that layer is
+
+- Multi-Head Attention
+- Dense Layer
+- Feed Forward Network
+- Residual Addition
+
+Whenever you read
+
+> "Layer Normalization normalizes the activations"
+
+you should mentally read it as
+
+> "Layer Normalization normalizes the output values produced by the previous layer."
 
 # 3. Layer Normalization
 
