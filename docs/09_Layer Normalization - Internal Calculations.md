@@ -10,7 +10,7 @@ In this chapter, we will understand how Layer Normalization works internally by 
 
 # Why Do We Need Gamma (γ) and Beta (β)?
 
-At first glance, it may seem that Layer Normalization is complete after normalizing the values.
+At first glance, Layer Normalization seems complete after normalization.
 
 ```text
 Input
@@ -24,16 +24,165 @@ Normalize
 Output
 ```
 
-However, if every layer always produced outputs with **Mean = 0** and **Standard Deviation = 1**, the model would lose the flexibility to learn the best representation for different features.
+After normalization,
 
-To solve this problem, Layer Normalization introduces two learnable parameters:
+- Mean becomes approximately **0**
+- Standard Deviation becomes approximately **1**
 
-- **Gamma (γ)** – Controls the scale of each feature.
-- **Beta (β)** – Controls the shift of each feature.
+For example,
 
-Both **Gamma** and **Beta** are learned automatically during training using **backpropagation**, just like the weights of the Linear layers.
+```text
+Before Normalization
 
-Therefore, the complete Layer Normalization process is
+[7.0, 3.2, 5.1, 5.0]
+```
+
+After Normalization
+
+```text
+[1.43, -1.40, 0.02, -0.06]
+```
+
+The values are now centered around zero and have a consistent scale.
+
+So a natural question is:
+
+> **If the values are already normalized, why do we need Gamma (γ) and Beta (β)?**
+
+---
+
+# What Happens Without Gamma and Beta?
+
+Imagine every Layer Normalization layer always produced outputs like this.
+
+```text
+[-1.2, 0.4, 1.5, -0.7]
+
+↓
+
+Always Mean = 0
+
+Always Standard Deviation = 1
+```
+
+Every Transformer layer would be forced to output features with exactly the same distribution.
+
+The model would **lose the freedom to decide**:
+
+- Which features should be stronger?
+- Which features should be weaker?
+- Should a feature be shifted slightly upward or downward?
+
+Normalization would force every feature into the same range.
+
+This can make the model less expressive.
+
+---
+
+# Why Researchers Added Gamma (γ)
+
+Researchers wanted the stability provided by normalization **without restricting what the model could learn**.
+
+So they introduced a learnable scaling parameter called **Gamma (γ)**.
+
+Gamma allows the model to decide
+
+- Increase the importance of this feature.
+- Decrease the importance of this feature.
+- Leave this feature unchanged.
+
+For example,
+
+Suppose the normalized output is
+
+```text
+[1.43, -1.40, 0.02, -0.06]
+```
+
+and
+
+```text
+γ
+
+=
+
+[2.0, 0.5, 1.0, 1.5]
+```
+
+After Gamma scaling,
+
+```text
+[2.86, -0.70, 0.02, -0.09]
+```
+
+Notice that
+
+- the first feature became more important,
+- the second feature became less important,
+- the third feature stayed the same.
+
+The model learns these scaling values automatically during training.
+
+---
+
+# Why Researchers Added Beta (β)
+
+Scaling alone is not always enough.
+
+Sometimes the model learns better if the features are shifted upward or downward.
+
+Beta provides this flexibility.
+
+Suppose
+
+```text
+Gamma Output
+
+[2.86, -0.70, 0.02, -0.09]
+```
+
+and
+
+```text
+β
+
+=
+
+[0.2, -0.3, 0.5, 0.1]
+```
+
+After adding Beta,
+
+```text
+[3.06, -1.00, 0.52, 0.01]
+```
+
+Beta shifts each feature without changing the relationships learned during normalization.
+
+---
+
+# Why Not Skip Normalization Completely?
+
+Without Layer Normalization,
+
+- activations can become too large or too small,
+- training becomes unstable,
+- gradients may explode or vanish,
+- deep Transformers become much harder to train.
+
+Normalization keeps training stable.
+
+Gamma and Beta restore the flexibility that normalization removes.
+
+---
+
+# The Main Idea
+
+Think of Layer Normalization as two separate steps.
+
+**Step 1**
+
+Normalize the values so training becomes stable.
 
 ```text
 Input
@@ -41,21 +190,29 @@ Input
 ↓
 
 Normalize
-
-↓
-
-Multiply by Gamma (γ)
-
-↓
-
-Add Beta (β)
-
-↓
-
-LayerNorm Output
 ```
 
----
+**Step 2**
+
+Allow the model to adjust those normalized values.
+
+```text
+Normalize
+
+↓
+
+Gamma (Scale)
+
+↓
+
+Beta (Shift)
+```
+
+Normalization provides **stability**.
+
+Gamma and Beta provide **flexibility**.
+
+Together, they allow Transformers to train efficiently while still learning powerful feature representations.
 
 # Input to Layer Normalization
 
