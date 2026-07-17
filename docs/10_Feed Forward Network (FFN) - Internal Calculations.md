@@ -965,3 +965,89 @@ FFN Output (1 × 4)
 ```
 
 The FFN output is now passed to the **Residual (Skip) Connection**, followed by **Layer Normalization**
+
+# Step 1: Residual (Skip) Connection
+
+The Feed Forward Network (FFN) has now produced the following output.
+
+```text
+FFN Output
+
+[8.06, 7.52, 8.41, 7.89]
+```
+
+The shape of the FFN output is
+
+```text
+1 × 4
+```
+
+Recall that the original input to the Feed Forward Network was
+
+```text
+FFN Input
+
+[2, 1, 3, 4]
+```
+
+The shape of the input is also
+
+```text
+1 × 4
+```
+
+Since both tensors have the same dimensions, they can be added element-wise.
+
+```text
+Residual Output
+
+=
+
+FFN Input
+
++
+
+FFN Output
+```
+
+```text
+[2, 1, 3, 4]
+
++
+
+[8.06, 7.52, 8.41, 7.89]
+
+=
+
+[10.06, 8.52, 11.41, 11.89]
+```
+
+The shape remains
+
+```text
+1 × 4
+```
+
+This operation is called the **Residual (Skip) Connection** because the original input skips over the Feed Forward Network and is directly added to its output.
+
+```text
+          FFN Input
+              │
+              │
+              ▼
+      ┌─────────────────┐
+      │ Feed Forward    │
+      │ Network (FFN)   │
+      └─────────────────┘
+              │
+              ▼
+        FFN Output
+              │
+              ▼
+        Element-wise Add
+              ▲
+              │
+     Original FFN Input
+```
+
+The result of this addition is then passed to the **Layer Normalization** layer.
