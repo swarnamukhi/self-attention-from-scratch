@@ -775,3 +775,193 @@ Linear
 The FFN architecture remains the same.
 
 Only the activation function changes depending on the Transformer model.
+
+---
+
+# Step 7: Second Linear Layer
+
+After applying the activation function, we obtain the following output.
+
+```text
+[3.4, 0, 4.1, 0,
+ 4.5, 2.6, 0, 2.9,
+ 4.2, 0, 2.7, 3.9,
+ 4.4, 0, 3.6, 1.8]
+```
+
+The shape of this output is
+
+```text
+1 × 16
+```
+
+This activated output now becomes the input to the **second Linear layer**.
+
+The purpose of the second Linear layer is to project the expanded hidden representation back to the original embedding dimension.
+
+### Matrix Dimensions
+
+Scaled Example
+
+```text
+1 × 16
+
+×
+
+16 × 4
+
+=
+
+1 × 4
+```
+
+Original Transformer
+
+```text
+1 × 2048
+
+×
+
+2048 × 512
+
+=
+
+1 × 512
+```
+
+---
+
+## Weight Matrix
+
+The second Linear layer contains a weight matrix of size **16 × 4**.
+
+```text
+          O₁     O₂     O₃     O₄
+H₁       w₁₁    w₁₂    w₁₃    w₁₄
+H₂       w₂₁    w₂₂    w₂₃    w₂₄
+H₃       w₃₁    w₃₂    w₃₃    w₃₄
+...
+H₁₆     w₁₆₁   w₁₆₂   w₁₆₃   w₁₆₄
+```
+
+Each output neuron has its own set of **16 weights**.
+
+---
+
+## Calculating One Output Neuron
+
+Instead of calculating all four output neurons, let's calculate only **O₁**.
+
+Suppose the weights for **O₁** are
+
+```text
+[0.2, 0.1, 0.3, 0.4,
+ 0.2, 0.1, 0.3, 0.2,
+ 0.1, 0.4, 0.2, 0.3,
+ 0.1, 0.2, 0.3, 0.2]
+```
+
+Bias
+
+```text
+0.4
+```
+
+The calculation is
+
+```text
+O₁
+
+= (3.4 × 0.2)
++ (0 × 0.1)
++ (4.1 × 0.3)
++ (0 × 0.4)
++ (4.5 × 0.2)
++ (2.6 × 0.1)
++ (0 × 0.3)
++ (2.9 × 0.2)
++ (4.2 × 0.1)
++ (0 × 0.4)
++ (2.7 × 0.2)
++ (3.9 × 0.3)
++ (4.4 × 0.1)
++ (0 × 0.2)
++ (3.6 × 0.3)
++ (1.8 × 0.2)
++ 0.4
+```
+
+```text
+= 0.68
++ 0
++ 1.23
++ 0
++ 0.90
++ 0.26
++ 0
++ 0.58
++ 0.42
++ 0
++ 0.54
++ 1.17
++ 0.44
++ 0
++ 1.08
++ 0.36
++ 0.40
+
+= 8.06
+```
+
+Therefore,
+
+```text
+O₁ = 8.06
+```
+
+The remaining output neurons (**O₂**, **O₃**, and **O₄**) are calculated in exactly the same way using their own weights and biases.
+
+Suppose the final outputs are
+
+```text
+O₁ = 8.06
+O₂ = 7.52
+O₃ = 8.41
+O₄ = 7.89
+```
+
+The final output of the Feed Forward Network becomes
+
+```text
+[8.06, 7.52, 8.41, 7.89]
+```
+
+The output shape is
+
+```text
+1 × 4
+```
+
+This completes the Feed Forward Network (FFN).
+
+```text
+Input (1 × 4)
+
+↓
+
+Linear Layer (4 → 16)
+
+↓
+
+Activation Function
+
+↓
+
+Linear Layer (16 → 4)
+
+↓
+
+FFN Output (1 × 4)
+```
+
+The FFN output is now passed to the **Residual (Skip) Connection**, followed by **Layer Normalization**
