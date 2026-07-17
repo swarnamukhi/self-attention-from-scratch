@@ -827,6 +827,34 @@ Standardization is applied because the input contains numerical features.
 LayerNorm is still applied because it is part of the Transformer architecture.
 
 ---
+Layer Normalization consists of two stages.
+
+### Stage 1: Normalization (Standardization)
+
+```text
+x
+
+↓
+
+x̂ = (x − μ) / √(σ² + ε)
+```
+
+The input is normalized so that it has approximately
+
+- Mean = 0
+- Standard Deviation = 1
+
+---
+
+### Stage 2: Affine Transformation
+
+```text
+y = γ × x̂ + β
+```
+
+The normalized values are then scaled using **Gamma (γ)** and shifted using **Beta (β)**.
+
+This step restores the flexibility that normalization removes while keeping the training stable.
 
 # Key Takeaways
 
