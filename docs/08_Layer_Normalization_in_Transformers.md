@@ -1,4 +1,4 @@
-# 07_Normalization_in_Deep_Learning_and_Transformers.md
+# 08_Normalization_in_Deep_Learning_and_Transformers.md
 
 # Why Do We Need Normalization?
 
